@@ -2,27 +2,37 @@
 
 # This is a Single-thread crawler starts from javbus2.pw/page/1
 
-import parser
+import parsertest
 import crawler
 import database
 import timeit
 import requests
 import os
 from object_prototye import Counter
+from bs4 import BeautifulSoup
 import datetime
 
+
+def update_genre(genre_id):
+    # request to javbus
+    url = 'https://www.dmmsee.icu/genre'
+    genre_res = requests.get(url)
+    genre_res.raise_for_status()
+
+    # init beautiful soup
+    soup = BeautifulSoup(genre_res.text, 'lxml')
 
 def update(url, counter):
     """ parse function for each page"""
 
     # get main page soup
-    main_page_soup = parser.get_main_page_soup(url)
+    main_page_soup = parsertest.get_main_page_soup(url)
 
     # request the website and get the elements
-    movie_links = parser.get_movie_page_list(main_page_soup)
+    movie_links = parsertest.get_movie_page_list(main_page_soup)
 
     # get next page url
-    next_page = parser.get_next_page_url(main_page_soup)
+    next_page = parsertest.get_next_page_url(main_page_soup)
 
     # loop through each movie box in the main page
     for i in movie_links:
@@ -32,7 +42,7 @@ def update(url, counter):
             return False
 
         # get av num from the soup
-        av_num = parser.get_av_num(i)
+        av_num = parsertest.get_av_num(i)
 
         if database.check_existence(av_num):
             print('* 已存在 %s 停止爬取 *' % av_num)
@@ -40,21 +50,21 @@ def update(url, counter):
             continue
 
         # get view page soup
-        soup = parser.get_link_soup(i)
+        soup = parsertest.get_link_soup(i)
 
         # show current working status
         print('正在扒取：第' + str(os.path.basename(url)) + '页' + ' 番号：' + av_num)
 
         # get movie object info
-        movie = parser.get_movie(soup, av_num)
+        movie = parsertest.get_movie(soup, av_num)
 
         # show movie object
         # print(movie)
 
-        stars = parser.get_star_list(soup)
-        links = parser.get_download_link(soup, url, av_num)
+        stars = parsertest.get_star_list(soup)
+        links = parsertest.get_download_link(soup, url, av_num)
 
-        images = parser.get_sample_img_list(soup)
+        images = parsertest.get_sample_img_list(soup)
 
         # store movie info to database
         database.insert_movie(movie)
@@ -117,7 +127,7 @@ def main():
     start_time = timeit.default_timer()
 
     # entry must contains /hd/page
-    entry_url = 'https://www.javbus2.pw/page/1'
+    entry_url = 'https://www.dmmsee.icu/page/1'
 
     count = Counter()
 

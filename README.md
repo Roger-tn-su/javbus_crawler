@@ -26,7 +26,7 @@ $ cd .../crawler_javbus
 * Run code below on terminal to start parsing
 * 运行以下指令
 ```bash
-$ python3 parser.py 1 999
+$ python3 parsertest.py 1 999
 ```
 
  * The code above parse from page 1 to page 999
