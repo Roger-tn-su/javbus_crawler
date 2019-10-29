@@ -62,38 +62,35 @@ def parse_page(url, thread_num, counter):
         database.insert_movie(movie)
 
         # store m_s info to database
-        if starIDs is not None:
-            for s in starIDs:
-                if database.check_stars(s[0]):
-                    database.insert_m_s(av_num, s[0])
-                else:
-                    p = parsertest.get_star(s)
-                    database.insert_star(p)
-                    database.insert_m_s(av_num, s[0])
-        else:
-            database.insert_m_s(av_num, 'None')
 
-        # store m_g info to database
-        if genres is not None:
-            for g in genres:
-                if database.check_genres(g[0]):
-                    database.insert_m_g(av_num, g[0])
-                else:
-                    p = parsertest.get_genre(g)
-                    database.insert_genre(p)
-                    database.insert_m_g(av_num, g[0])
-        else:
-            database.insert_m_g(av_num, 'None')
+        for s in starIDs:
+            if database.check_stars(s[0]):
+                database.insert_m_s(av_num, s[0])
+            else:
+                p = parsertest.get_star(s)
+                database.insert_star(p)
+                database.insert_m_s(av_num, s[0])
+
+        for g in genres:
+            if database.check_genres(g[0]):
+                database.insert_m_g(av_num, g[0])
+            else:
+                p = parsertest.get_genre(g)
+                database.insert_genre(p)
+                database.insert_m_g(av_num, g[0])
 
         # store links info to database
         for l in links:
             database.insert_magnet(l)
 
         # store images url to database
-        for g in images:
-            database.insert_img(g, av_num)
+        for im in images:
+            database.insert_img(im, av_num)
 
         counter.increment_parse()
+
+        print('Thread {} 已扒取完毕：第 {} 页 番号：{}'.format(str(thread_num),
+                                                   str(os.path.basename(url)), av_num))
 
     print('第 ' + str(os.path.basename(url)) + ' 页扒取完毕')
     print('-------------------------')
@@ -192,14 +189,18 @@ def multi_threads_main():
     thread_4_url = get_page_url(third_quarter_page + 1)
 
     # sub thread objects
+    first_thread = threading.Thread(target=main, args=[entry_url, quarter_page, 1, count])
+
     second_thread = threading.Thread(target=main, args=[thread_2_url, half_page, 2, count])
 
     third_thread = threading.Thread(target=main, args=[thread_3_url, third_quarter_page, 3,
-    count])
+                                                       count])
 
     fourth_thread = threading.Thread(target=main, args=[thread_4_url, max_page, 4, count])
 
     # start sub parsing threads
+    first_thread.start()
+
     second_thread.start()
 
     third_thread.start()
@@ -207,7 +208,7 @@ def multi_threads_main():
     fourth_thread.start()
 
     # start main parsing
-    main(entry_url, quarter_page, 1, count)
+    # main(entry_url, quarter_page, 1, count)
 
     # calculate run time
     stop_time = timeit.default_timer()
@@ -215,6 +216,7 @@ def multi_threads_main():
     time_spent = stop_time - start_time
 
     # wait for all threads to end
+    first_thread.join()
     second_thread.join()
     third_thread.join()
     fourth_thread.join()

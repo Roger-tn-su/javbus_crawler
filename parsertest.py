@@ -11,9 +11,11 @@ import database
 
 def get_main_page_soup(home_url):
     """ parse main page soup"""
-
+    user_agent= 'Mozilla / 5.0 (Windows NT 10.0; Win64; x64) AppleWebKit / 537.36(KHTML, ' \
+                'like Gecko) Chrome / 64.0.3282.140 Safari / 537.36 Edge / 18.17763 '
+    headers = {'User-agent':user_agent}
     # request to javbus
-    res = requests.get(home_url)
+    res = requests.get(home_url, headers=headers, timeout=20)
     res.raise_for_status()
 
     # init beautiful soup
@@ -55,8 +57,12 @@ def get_movie_page_list(soup):
 
 
 def get_link_soup(link):
+    user_agent = 'Mozilla / 5.0 (Windows NT 10.0; Win64; x64) AppleWebKit / 537.36(KHTML, ' \
+                 'like Gecko) Chrome / 64.0.3282.140 Safari / 537.36 Edge / 18.17763 '
+    headers = {'User-agent': user_agent}
+
     """ get the soup of given link"""
-    viewPageRes = requests.get(link)
+    viewPageRes = requests.get(link, headers=headers, timeout=20)
     viewPageRes.raise_for_status()
 
     # make soup of view page
@@ -93,34 +99,34 @@ def get_movie(soup, avNum):
     if dateElems is not None:
         date = dateElems.next_sibling[1:]
     else:
-        date = ''
+        date = None
 
     # get movie length
     lengthElems = soup.find('span', text='長度:')
     if lengthElems is not None:
         length = int(str(lengthElems.next_sibling).replace('分鐘', '', 1))
     else:
-        length = ''
+        length = None
 
     # get movie director
     directorElems = soup.find('span', text='導演:')
     if directorElems is not None:
         director = directorElems.next_sibling.next_sibling.text
     else:
-        director = ''
+        director = None
 
 
     producerElems = soup.find('span', text='製作商:')
     if producerElems is not None:
         producer = producerElems.next_sibling.next_sibling.text
     else:
-        producer = ''
+        producer = None
 
     publisherElems = soup.find('span', text='發行商:')
     if publisherElems is not None:
         publisher = publisherElems.next_sibling.next_sibling.text
     else:
-        publisher = ''
+        publisher = None
 
     movie = Movie(avNum,title,cover_img,date,length,director,producer,publisher)
 
@@ -130,7 +136,11 @@ def get_movie(soup, avNum):
 def get_star(star_info):
     page_url = 'https://www.dmmsee.icu/star/' + star_info[0]
 
-    res = requests.get(page_url)
+    user_agent = 'Mozilla / 5.0 (Windows NT 10.0; Win64; x64) AppleWebKit / 537.36(KHTML, ' \
+                 'like Gecko) Chrome / 64.0.3282.140 Safari / 537.36 Edge / 18.17763 '
+    headers = {'User-agent': user_agent}
+
+    res = requests.get(page_url, headers=headers, timeout=20)
     res.raise_for_status()
 
     # init beautiful soup
@@ -140,15 +150,15 @@ def get_star(star_info):
     # init star infos
     starID = star_info[0]
     starName = star_info[1]
-    starBirthday = ''
-    starAge = ''
-    starHeight = ''
-    starCups = ''
-    starBust = ''
-    starWaist = ''
-    starHip = ''
-    starBirthPlace = ''
-    starHobby = ''
+    starBirthday = None
+    starAge = None
+    starHeight = None
+    starCups = None
+    starBust = None
+    starWaist = None
+    starHip = None
+    starBirthPlace = None
+    starHobby = None
 
     for elem in star_infos:
         item = elem.text.split(': ')
@@ -214,7 +224,11 @@ def get_genre_list(soup):
 
 def get_genre(genre_info):
     url = 'https://www.dmmsee.icu/genre'
-    genre_res = requests.get(url)
+    user_agent = 'Mozilla / 5.0 (Windows NT 10.0; Win64; x64) AppleWebKit / 537.36(KHTML, ' \
+                 'like Gecko) Chrome / 64.0.3282.140 Safari / 537.36 Edge / 18.17763 '
+    headers = {'User-agent': user_agent}
+
+    genre_res = requests.get(url, headers=headers, timeout=20)
     genre_res.raise_for_status()
 
     # init beautiful soup
@@ -252,11 +266,13 @@ def get_download_link(soup, home_url, avNum):
     text = paramsElems.text
     gid = text[12:24]
     reqUrl = 'https://www.dmmsee.icu/ajax/uncledatoolsbyajax.php'
-    header = {'referer': home_url}
+    user_agent = 'Mozilla / 5.0 (Windows NT 10.0; Win64; x64) AppleWebKit / 537.36(KHTML, ' \
+                 'like Gecko) Chrome / 64.0.3282.140 Safari / 537.36 Edge / 18.17763 '
+    header = {'User-agent': user_agent, 'referer': home_url}
 
     payload = {'gid': gid, 'uc': 0}
 
-    tableRes = requests.get(reqUrl, params=payload, headers=header)
+    tableRes = requests.get(reqUrl, params=payload, headers=header, timeout=20)
     tableRes.raise_for_status()
 
     magnetSoup = bs4.BeautifulSoup(tableRes.text, 'html.parser')
@@ -271,8 +287,9 @@ def get_download_link(soup, home_url, avNum):
         m += 1
         movieSize = re.sub(pattern, '', magnetElems[m].text)
         m += 1
-
         movieDate = re.sub(pattern, '', magnetElems[m].text)
+        if movieDate == '0000-00-00':
+            movieDate = '1900-01-01'
         m += 1
         p = Link(avNum,magnetLink,movieFile,movieSize,movieDate)
         yield p

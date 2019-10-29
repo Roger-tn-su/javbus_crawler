@@ -1,4 +1,4 @@
-import sqlite3
+import pymysql
 from object_prototye import Movie
 from object_prototye import Link
 from object_prototye import Star
@@ -11,7 +11,12 @@ import requests
 
 def db_connection_movies(db_func):
     def wrapper(*args, **kwargs):
-        conn = sqlite3.connect('movies1019.db')
+        conn = pymysql.connect(host='localhost',
+                               user='root',
+                               password='19820612',
+                               database='movie1026',
+                               use_unicode=True,
+                               charset='utf8')
         c = conn.cursor()
 
         with conn:
@@ -26,49 +31,62 @@ def init(c):
     # conn = sqlite3.connect('movies.db')
     # c = conn.cursor()
 
-    c.execute(""" CREATE TABLE IF NOT EXISTS movies (avNum TEXT PRIMARY KEY, 
-                                                    title TEXT, 
-                                                    coverImgUrl TEXT, 
-                                                    release DATE,
-                                                    length INTEGER,
-                                                    director TEXT,
-                                                    producer TEXT,
-                                                    publisher TEXT)""")
-    c.execute(""" CREATE TABLE IF NOT EXISTS stars (starID TEXT PRIMARY KEY, 
-                                                    name TEXT, 
-                                                    birthday DATE,
-                                                    age INTEGER,
-                                                    height INTEGER,
-                                                    cups TEXT,
-                                                    bust INTEGER,
-                                                    waist INTEGER,
-                                                    hip INTEGER,
-                                                    birthplace TEXT,
-                                                    hobby TEXT)""")
-    c.execute(""" CREATE TABLE IF NOT EXISTS genre (genreID TEXT PRIMARY KEY,
-                                                    genreName TEXT,
-                                                    category TEXT) """)
-    c.execute(""" CREATE TABLE IF NOT EXISTS magnets (avNum TEXT, 
-                                                        url TEXT,
-                                                        filename TEXT,
-                                                        size TEXT,
-                                                        addTime DATE,
-                                                        FOREIGN KEY(avNum) REFERENCES movies(avNum),
-                                                        UNIQUE(avNum, url))""")
-    c.execute(""" CREATE TABLE IF NOT EXISTS images (avNum TEXT, 
-                                                    imgUrl TEXT,
+    c.execute(""" CREATE TABLE IF NOT EXISTS `movies` (`m_id` INT AUTO_INCREMENT PRIMARY KEY ,
+                                                        `avNum` VARCHAR(40) UNIQUE , 
+                                                        `title` TEXT, 
+                                                        `coverImgUrl` TEXT, 
+                                                        `release` DATE,
+                                                        `length` INTEGER,
+                                                        `director` TEXT,
+                                                        `producer` TEXT,
+                                                        `publisher` TEXT)
+                                                        ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
+    c.execute(""" CREATE TABLE IF NOT EXISTS `stars` (`s_id` INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    `starID` VARCHAR(40) UNIQUE , 
+                                                    `name` TEXT, 
+                                                    `birthday` DATE,
+                                                    `age` INTEGER,
+                                                    `height` INTEGER,
+                                                    `cups` TEXT,
+                                                    `bust` INTEGER,
+                                                    `waist` INTEGER,
+                                                    `hip` INTEGER,
+                                                    `birthplace` TEXT,
+                                                    `hobby` TEXT)
+                                                    ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
+    c.execute(""" CREATE TABLE IF NOT EXISTS `genre` (`g_id` INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    `genreID` VARCHAR(40) UNIQUE ,
+                                                    `genreName` TEXT,
+                                                    `category` TEXT)
+                                                     ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
+    c.execute(""" CREATE TABLE IF NOT EXISTS `magnets` (`ma_id` INT AUTO_INCREMENT PRIMARY KEY,
+                                                        `avNum` VARCHAR(40), 
+                                                        `url` TEXT,
+                                                        `filename` TEXT,
+                                                        `size` TEXT,
+                                                        `addTime` DATE,
+                                                        FOREIGN KEY(`avNum`) 
+                                                        REFERENCES movies(`avNum`))
+                                                        ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
+    c.execute(""" CREATE TABLE IF NOT EXISTS `images` (`i_id` INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    `avNum` VARCHAR(40), 
+                                                    `imgUrl` TEXT,
+                                                    FOREIGN KEY (avNum) REFERENCES movies(`avNum`)
+                                                    )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
+    c.execute(""" CREATE TABLE IF NOT EXISTS `m_s` (`m_s_id` INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    `avNum` VARCHAR(40), 
+                                                    `starID` VARCHAR(255),
+                                                    FOREIGN KEY (avNum) REFERENCES movies(`avNum`),
+                                                    FOREIGN KEY (starID) REFERENCES stars(`starID`),
+                                                    UNIQUE(avNum, starID))
+                                                    ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
+    c.execute(""" CREATE TABLE IF NOT EXISTS `m_g` (`m_g_id` INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    `avNum` VARCHAR(40), 
+                                                    `genreID` VARCHAR(40), 
                                                     FOREIGN KEY (avNum) REFERENCES movies(avNum),
-                                                        UNIQUE(avNum, imgUrl))""")
-    c.execute(""" CREATE TABLE IF NOT EXISTS m_s (avNum TEXT, 
-                                                  starID TEXT,
-                                                  FOREIGN KEY (avNum) REFERENCES movies(avNum),
-                                                  FOREIGN KEY (starID) REFERENCES stars(starID),
-                                                  UNIQUE(avNum, starID))""")
-    c.execute(""" CREATE TABLE IF NOT EXISTS m_g (avNum TEXT, 
-                                                  genreID TEXT, 
-                                                  FOREIGN KEY (avNum) REFERENCES movies(avNum),
-                                                  FOREIGN KEY (genreID) REFERENCES genre(genreID),
-                                                  UNIQUE(avNum, genreID))""")
+                                                    FOREIGN KEY (genreID) REFERENCES genre(genreID),
+                                                    UNIQUE(avNum, genreID))
+                                                    ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;""")
 
 
 @db_connection_movies
@@ -77,16 +95,17 @@ def insert_movie(c, movie):
     # c = conn.cursor()
 
     # with conn:
-    c.execute("INSERT OR REPLACE INTO movies VALUES (:avNum, :title, :coverImgUrl, :release, "
-              ":length, :director, :producer, :publisher)",
-              {'avNum': movie.avNum,
-               'title': movie.title,
-               'coverImgUrl': movie.cover_img,
-               'release': movie.release_date,
-               'length': movie.length,
-               'director': movie.director,
-               'producer': movie.producer,
-               'publisher': movie.publisher})
+    c.execute("REPLACE INTO `movies` (`avNum`, `title`, `coverImgUrl`, `release`, "
+              "`length`, `director`, `producer`, `publisher`) VALUES (%s, %s, %s, %s, %s, %s, %s, "
+              "%s) ",
+              (movie.avNum,
+               movie.title,
+               movie.cover_img,
+               movie.release_date,
+               movie.length,
+               movie.director,
+               movie.producer,
+               movie.publisher))
 
 
 @db_connection_movies
@@ -96,19 +115,20 @@ def insert_star(c, star):
     #
     # with conn:
     c.execute(
-        "INSERT OR REPLACE INTO stars VALUES (:starID, :name, :birthday, :age, :height, :cups, "
-        ":bust, :waist, :hip, :birthplace, :hobby)",
-        {'starID': star.starID,
-         'name': star.name,
-         'birthday': star.birthday,
-         'age': star.age,
-         'height': star.height,
-         'cups': star.cups,
-         'bust': star.bust,
-         'waist': star.waist,
-         'hip': star.hip,
-         'birthplace': star.birthplace,
-         'hobby': star.hobby})
+        "REPLACE INTO `stars`  (`starID`, `name`, `birthday`, `age`, `height`, `cups`, "
+        "`bust`, `waist`, `hip`, `birthplace`, `hobby`)VALUES (%s, %s, %s, %s, %s, %s, %s, %s, "
+        "%s, %s, %s)", 
+        (star.starID,
+         star.name,
+         star.birthday,
+         star.age,
+         star.height,
+         star.cups,
+         star.bust,
+         star.waist,
+         star.hip,
+         star.birthplace,
+         star.hobby))
 
 
 @db_connection_movies
@@ -118,10 +138,10 @@ def insert_genre(c, genre):
     #
     # with conn:
     c.execute(
-        "INSERT OR REPLACE INTO genre VALUES (:genreID, :genreName, :category)",
-        {'genreID': genre.genreID,
-         'genreName': genre.genreName,
-         'category': genre.category, })
+        "INSERT INTO `genre` (`genreID`, `genreName`, `category`) VALUES (%s, %s, %s) ",
+        (genre.genreID,
+         genre.genreName,
+         genre.category))
 
 
 @db_connection_movies
@@ -130,12 +150,13 @@ def insert_magnet(c, link):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("INSERT OR REPLACE INTO magnets VALUES (:avNum, :url, :filename, :size, :addTime)",
-              {'avNum': link.avNum,
-               'url': link.url,
-               'filename': link.filename,
-               'size': link.size,
-               'addTime': link.addTime})
+    c.execute("INSERT INTO `magnets` (`avNum`, `url`, `filename`, `size`, `addTime`) VALUES "
+              "(%s, %s, %s, %s, %s)",
+              (link.avNum,
+               link.url,
+               link.filename,
+               link.size,
+               link.addTime))
 
 
 @db_connection_movies
@@ -144,9 +165,9 @@ def insert_img(c, img, num):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("INSERT OR REPLACE INTO images VALUES (:avNum, :name)",
-              {'avNum': num,
-               'name': img})
+    c.execute("INSERT INTO `images` (`avNum`, `imgUrl`) VALUES (%s, %s) ",
+              (num,
+               img))
 
 
 @db_connection_movies
@@ -155,9 +176,9 @@ def insert_m_s(c, num, sid):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("INSERT OR REPLACE INTO m_s VALUES (:avNum, :starID)",
-              {'avNum': num,
-               'starID': sid})
+    c.execute("INSERT INTO `m_s` (`avNum`, `starID`) VALUES (%s, %s)",
+              (num,
+               sid))
 
 
 @db_connection_movies
@@ -166,9 +187,9 @@ def insert_m_g(c, num, gid):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("INSERT OR REPLACE INTO m_g VALUES (:avNum, :genreID)",
-              {'avNum': num,
-               'genreID': gid})
+    c.execute("INSERT INTO `m_g` (`avNum`, `genreID`) VALUES (%s, %s)",
+              (num,
+               gid))
 
 
 @db_connection_movies
@@ -177,8 +198,8 @@ def check_existence(c, av_num):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("SELECT 1 FROM movies WHERE avNum=:avNum",
-              {'avNum': av_num})
+    c.execute("SELECT 1 FROM movies WHERE avNum=%s",
+              av_num)
 
     if c.fetchone() is not None:
         print('data exists')
@@ -194,7 +215,7 @@ def check_links(c, av_num):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("SELECT avNum FROM magnets WHERE avNum=:avNum", {'avNum': av_num})
+    c.execute("SELECT avNum FROM magnets WHERE avNum=%s", av_num)
     if c.fetchone() is not None:
         # print('link exists')
         return True
@@ -209,7 +230,7 @@ def check_stars(c, star_id):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("SELECT * FROM stars WHERE starID=:starID", {'starID': star_id})
+    c.execute("SELECT * FROM stars WHERE starID=%s", star_id)
     if c.fetchone() is not None:
         # print('star exists')
         return True
@@ -224,7 +245,7 @@ def check_genres(c, genre_id):
     # c = conn.cursor()
     #
     # with conn:
-    c.execute("SELECT * FROM genre WHERE genreID=:genreID", {'genreID': genre_id})
+    c.execute("SELECT * FROM genre WHERE genreID=%s", genre_id)
     if c.fetchone() is not None:
         # print('genre exists')
         return True
@@ -257,9 +278,10 @@ def update_genres(entry_url):
 
 
 if __name__ == '__main__':
+
     init()
     # mov_1 = Movie('testMovie', 'test', 'test', '2019-06-20', 1, 'test', 'test', 'test')
-    star_1 = Star('None', 'None', '', 0, 0, '', 0, 0, 0, '', '')
+    star_1 = Star('None', 'None', '1982-06-12', 0, 0, '', 0, 0, 0, '', '')
     genre_1 = Genre('None', 'None', 'None')
     # link_1 = Link('testMovie', 'test', 'test', 'test', datetime.date.today())
 
