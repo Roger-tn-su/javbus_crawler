@@ -28,7 +28,7 @@ def parse_page(url, thread_num, counter):
     for i in movie_links:
 
         # get av num from the soup
-        av_num = parsertest.get_av_num(i)
+        av_num = parsertest.get_av_num(i[0])
 
         # skip existed movie
         if database.check_existence(av_num):
@@ -36,14 +36,14 @@ def parse_page(url, thread_num, counter):
             continue
 
         # get view page soup
-        soup = parsertest.get_link_soup(i)
+        soup = parsertest.get_link_soup(i[0])
 
         # show current working status
         print('Thread {} 正在扒取：第 {} 页 番号：{}'.format(str(thread_num),
                                                    str(os.path.basename(url)), av_num))
 
         # get movie object info
-        movie = parsertest.get_movie(soup, av_num)
+        movie = parsertest.get_movie(soup, av_num,i[1])
 
         # show movie object
         # print(movie)

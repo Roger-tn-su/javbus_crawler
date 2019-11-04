@@ -2,10 +2,11 @@
 class Movie:
     """ class for each movie in javbus website"""
 
-    def __init__(self, av_num, title, cover_imgurl, date, length, director, producer, publisher):
+    def __init__(self, av_num, title, cover_imgurl, thumb_imgurl, date, length, director, producer, publisher):
         self._avNum = av_num
         self._title = title
         self._cover_img = cover_imgurl
+        self._thumb_img = thumb_imgurl
         self._release_date = date
         self._length = length
         self._director = director
@@ -23,6 +24,10 @@ class Movie:
     @property
     def cover_img(self):
         return self._cover_img
+
+    @property
+    def thumb_img(self):
+        return self._thumb_img
 
     @property
     def release_date(self):
@@ -46,8 +51,8 @@ class Movie:
 
     def __repr__(self):
         return '{} {} {} {} {} {} {} {}'.format(self._avNum, self._title, self._cover_img,
-                                                self._release_date, self._length, self._director,
-                                                self._producer, self._publisher)
+                                                self._thumb_img, self._release_date, self._length,
+                                                self._director, self._producer, self._publisher)
 
 
 class Star:

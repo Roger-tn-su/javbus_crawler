@@ -35,6 +35,7 @@ def init(c):
                                                         `avNum` VARCHAR(40) UNIQUE , 
                                                         `title` TEXT, 
                                                         `coverImgUrl` TEXT, 
+                                                        `thumbImgUrl` TEXT,
                                                         `release` DATE,
                                                         `length` INTEGER,
                                                         `director` TEXT,
@@ -95,12 +96,13 @@ def insert_movie(c, movie):
     # c = conn.cursor()
 
     # with conn:
-    c.execute("REPLACE INTO `movies` (`avNum`, `title`, `coverImgUrl`, `release`, "
+    c.execute("REPLACE INTO `movies` (`avNum`, `title`, `coverImgUrl`, `thumbImgUrl`, `release`, "
               "`length`, `director`, `producer`, `publisher`) VALUES (%s, %s, %s, %s, %s, %s, %s, "
-              "%s) ",
+              "%s, %s) ",
               (movie.avNum,
                movie.title,
                movie.cover_img,
+               movie.thumb_img,
                movie.release_date,
                movie.length,
                movie.director,
