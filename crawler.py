@@ -2,7 +2,7 @@
 
 # This is a four threads crawler starts from javbus2.pw/genre/hd/1
 
-import parser
+import parsertest
 import database
 import os
 import timeit
@@ -16,19 +16,19 @@ def parse_page(url, thread_num, counter):
     """ parse function for each page"""
 
     # get main page soup
-    main_page_soup = parser.get_main_page_soup(url)
+    main_page_soup = parsertest.get_main_page_soup(url)
 
     # request the website and get the elements
-    movie_links = parser.get_movie_page_list(main_page_soup)
+    movie_links = parsertest.get_movie_page_list(main_page_soup)
 
     # get next page url
-    next_page = parser.get_next_page_url(main_page_soup)
+    next_page = parsertest.get_next_page_url(main_page_soup)
 
     # loop through each movie box in the main page
     for i in movie_links:
 
         # get av num from the soup
-        av_num = parser.get_av_num(i)
+        av_num = parsertest.get_av_num(i)
 
         # skip existed movie
         if database.check_existence(av_num):
@@ -36,39 +36,61 @@ def parse_page(url, thread_num, counter):
             continue
 
         # get view page soup
-        soup = parser.get_link_soup(i)
+        soup = parsertest.get_link_soup(i)
 
         # show current working status
         print('Thread {} 正在扒取：第 {} 页 番号：{}'.format(str(thread_num),
-                                                            str(os.path.basename(url)), av_num))
+                                                   str(os.path.basename(url)), av_num))
 
         # get movie object info
-        movie = parser.get_movie(soup, av_num)
+        movie = parsertest.get_movie(soup, av_num)
 
         # show movie object
         # print(movie)
+        # get starID list of a movie
+        starIDs = parsertest.get_starID_list(soup)
 
-        stars = parser.get_star_list(soup)
-        links = parser.get_download_link(soup, url, av_num)
+        # get genre list of a movie
+        genres = parsertest.get_genre_list(soup)
 
-        images = parser.get_sample_img_list(soup)
+        # get links of a movie
+        links = parsertest.get_download_link(soup, url, av_num)
+
+        images = parsertest.get_sample_img_list(soup)
 
         # store movie info to database
         database.insert_movie(movie)
 
-        # store star info to database
-        for s in stars:
-            database.insert_star(s, av_num)
+        # store m_s info to database
+
+        for s in starIDs:
+            if database.check_stars(s[0]):
+                database.insert_m_s(av_num, s[0])
+            else:
+                p = parsertest.get_star(s)
+                database.insert_star(p)
+                database.insert_m_s(av_num, s[0])
+
+        for g in genres:
+            if database.check_genres(g[0]):
+                database.insert_m_g(av_num, g[0])
+            else:
+                p = parsertest.get_genre(g)
+                database.insert_genre(p)
+                database.insert_m_g(av_num, g[0])
 
         # store links info to database
         for l in links:
             database.insert_magnet(l)
 
         # store images url to database
-        for g in images:
-            database.insert_img(g, av_num)
+        for im in images:
+            database.insert_img(im, av_num)
 
         counter.increment_parse()
+
+        print('Thread {} 已扒取完毕：第 {} 页 番号：{}'.format(str(thread_num),
+                                                   str(os.path.basename(url)), av_num))
 
     print('第 ' + str(os.path.basename(url)) + ' 页扒取完毕')
     print('-------------------------')
@@ -77,7 +99,6 @@ def parse_page(url, thread_num, counter):
 
 
 def main(start_page_url, end_page_num, thread_num, counter):
-
     # create a new database at "movies.db"
     database.init()
 
@@ -104,7 +125,8 @@ def main(start_page_url, end_page_num, thread_num, counter):
 
     # log thread complete time
     with open('failed_movies.txt', 'a') as f:
-        f.write('Thread {} complete at {}\n'.format(thread_num, str(datetime.datetime.now().time())))
+        f.write(
+            'Thread {} complete at {}\n'.format(thread_num, str(datetime.datetime.now().time())))
 
 
 def skip_page(this_page_url):
@@ -118,7 +140,7 @@ def skip_page(this_page_url):
 
 def get_page_url(page_num):
     """ generate a javbus page url when assign different page for multi-threading"""
-    page_url = 'https://www.javbus2.pw/genre/hd/' + str(page_num)
+    page_url = 'https://www.dmmsee.icu/genre/hd/' + str(page_num)
 
     return page_url
 
@@ -158,7 +180,7 @@ def multi_threads_main():
 
     # calculate page assignment for each thread
     # entry must contains /hd/page
-    entry_url = 'https://www.javbus2.pw/genre/hd/' + str(first_page)
+    entry_url = 'https://www.dmmsee.icu/genre/hd/' + str(first_page)
     half_page = int((max_page + first_page) / 2)
     quarter_page = int((first_page + half_page) / 2)
     third_quarter_page = int((half_page + max_page) / 2)
@@ -167,13 +189,18 @@ def multi_threads_main():
     thread_4_url = get_page_url(third_quarter_page + 1)
 
     # sub thread objects
+    first_thread = threading.Thread(target=main, args=[entry_url, quarter_page, 1, count])
+
     second_thread = threading.Thread(target=main, args=[thread_2_url, half_page, 2, count])
 
-    third_thread = threading.Thread(target=main, args=[thread_3_url, third_quarter_page, 3, count])
+    third_thread = threading.Thread(target=main, args=[thread_3_url, third_quarter_page, 3,
+                                                       count])
 
     fourth_thread = threading.Thread(target=main, args=[thread_4_url, max_page, 4, count])
 
     # start sub parsing threads
+    first_thread.start()
+
     second_thread.start()
 
     third_thread.start()
@@ -181,7 +208,7 @@ def multi_threads_main():
     fourth_thread.start()
 
     # start main parsing
-    main(entry_url, quarter_page, 1, count)
+    # main(entry_url, quarter_page, 1, count)
 
     # calculate run time
     stop_time = timeit.default_timer()
@@ -189,6 +216,7 @@ def multi_threads_main():
     time_spent = stop_time - start_time
 
     # wait for all threads to end
+    first_thread.join()
     second_thread.join()
     third_thread.join()
     fourth_thread.join()
